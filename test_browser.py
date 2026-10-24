@@ -1,0 +1,32 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+ browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ page=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
+ errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ page.goto('http://127.0.0.1:3000');page.get_by_role('button',name='デモを体験').click()
+ page.get_by_role('button',name='サンプルを入れる').click()
+ page.get_by_role('heading',name='今日は、どんな一日にしよう。').wait_for()
+ assert page.locator('.card').count()==3
+ page.get_by_label('デモの日付').select_option('7')
+ page.locator('.card').first.click();page.get_by_role('button',name='これをやってみる').click()
+ page.locator('textarea[name=note]').fill('ブラウザーからの小さな記録')
+ page.get_by_role('button',name='記録を保存',exact=True).click()
+ page.get_by_text('ブラウザーからの小さな記録',exact=True).wait_for()
+ page.reload();page.get_by_role('button',name='デモを体験').click()
+ page.get_by_role('button',name='My Journey',exact=False).click()
+ page.get_by_text('ブラウザーからの小さな記録',exact=True).wait_for()
+ page.get_by_role('button',name='Your Story',exact=False).click()
+ page.get_by_role('button',name='ストーリーを生成する',exact=False).click()
+ page.locator('#movie video').wait_for(timeout=60000)
+ page.locator('#movie video').evaluate('(v)=>v.play()')
+ page.wait_for_timeout(1000)
+ assert page.locator('#movie video').evaluate('(v)=>v.currentTime')>0
+ assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+ page.screenshot(path='/workspace/LifeTransitionApp/data/mobile-story.png',full_page=True)
+ assert not errors,errors
+ page.get_by_role('button',name='Today',exact=False).click()
+ page.screenshot(path='/workspace/LifeTransitionApp/data/mobile-today.png',full_page=True)
+ page.on('dialog',lambda dialog:dialog.accept())
+ page.get_by_role('button',name='デモを削除').click()
+ page.get_by_role('button',name='My New Chapterを始める',exact=False).wait_for()
+ browser.close();print('PASS: mobile demo, 3 choices, selection, persistence, MP4 playback, reset, no horizontal overflow or JS errors')
